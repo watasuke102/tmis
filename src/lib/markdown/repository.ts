@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { db, ensureDatabase } from "@/lib/db";
 import { documents, statusSettings, syncErrors } from "@/lib/db/schema";
 import { type Frontmatter, statusValues } from "@/lib/schema/frontmatter";
+import { splitTags } from "@/lib/tags";
 
 export type StatusValue = Frontmatter["status"];
 
@@ -208,9 +209,9 @@ export function getDashboardData(): MarkdownDashboardData {
   const documentsData = getDocuments();
   const errorsData = getSyncErrors();
   const statusOrder = getStatusOrder();
-  const tags = [
-    ...new Set(documentsData.flatMap((document) => document.tags)),
-  ].sort((left, right) => left.localeCompare(right));
+  const tags = [...new Set(documentsData.flatMap((document) => splitTags(document.tags)))].sort((left, right) =>
+    left.localeCompare(right),
+  );
 
   return {
     documents: documentsData,

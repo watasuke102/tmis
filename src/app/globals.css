@@ -18,3 +18,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+ul {
+  @apply list-disc list-inside ml-3;
+}
+ol {
+  @apply list-decimal list-inside ml-3;
+}
+
+.markdown {
+  h2 {
+    @apply text-3xl font-bold mb-3;
+  }
+  h3 {
+    @apply text-2xl font-bold mb-2;
+  }
+  h4 {
+    @apply text-xl font-bold mb-1;
+  }
+  p {
+    @apply mb-2;
+  }
+}

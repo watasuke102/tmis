@@ -1,8 +1,10 @@
 "use client";
 
-import parse from "html-react-parser";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import { useEffect } from "react";
+import { TagList } from "@/components/tag-list";
 import type { MarkdownDocumentListItem } from "@/lib/markdown/repository";
 
 type DocumentDetailProps = {
@@ -11,7 +13,6 @@ type DocumentDetailProps = {
 };
 
 export function DocumentDetail({ document }: DocumentDetailProps) {
-  const HeadingTag = headingLevel;
   useEffect(() => {
     const previousTitle = window.document.title;
     window.document.title = `TMIS> ${document.title}`;
@@ -21,7 +22,7 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
   }, [document.title]);
 
   return (
-    <article className="grid gap-2">
+    <article className="flex flex-col gap-2">
       <dl>
         <dt>status</dt>
         <dd>{document.status}</dd>
@@ -30,7 +31,9 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
         <dt>conference</dt>
         <dd>{document.conference}</dd>
         <dt>tags</dt>
-        <dd>{document.tags.join(", ")}</dd>
+        <dd>
+          <TagList tags={document.tags} />
+        </dd>
         <dt>url</dt>
         <dd>
           <Link href={document.url} rel="noreferrer" target="_blank">
@@ -48,7 +51,11 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
           </>
         ) : null}
       </dl>
-      <section>{parse(document.bodyHtml)}</section>
+      <article className="markdown">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {document.body}
+        </ReactMarkdown>
+      </article>
     </article>
   );
 }

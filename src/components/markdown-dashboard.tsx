@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { TagList } from "@/components/tag-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ import type {
   MarkdownSyncErrorItem,
   StatusValue,
 } from "@/lib/markdown/repository";
+import { splitTags } from "@/lib/tags";
 
 type ViewMode = "grid" | "table";
 type TabValue = ViewMode | "errors";
@@ -98,7 +100,7 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
             >
               <h3 className="font-bold hover:underline">{document.title}</h3>
               <p className="text-sm">{document.abstract}</p>
-              <p>{document.tags.join(", ")}</p>
+              <TagList tags={document.tags} />
             </Link>
           ))}
           {documents.length === 0 ? <p>No documents</p> : null}
@@ -122,7 +124,9 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
                   </Link>
                 </TableCell>
                 <TableCell>{document.conference}</TableCell>
-                <TableCell>{document.tags.join(", ")}</TableCell>
+                <TableCell>
+                  <TagList tags={document.tags} />
+                </TableCell>
                 <TableCell>{document.publishedAt}</TableCell>
               </TableRow>
             ))}
@@ -224,7 +228,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
 
   const [activeTab, setActiveTab] = useState<TabValue>("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTag, setSelectedTag] = useState<string>("all");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [statusOrder, setStatusOrder] = useState<StatusValue[]>(
     data.statusOrder,
   );
@@ -250,8 +254,10 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
 
   const filteredDocuments = useMemo(() => {
     return data.documents.filter((document) => {
+      const documentTags = splitTags(document.tags);
       const matchesTag =
-        selectedTag === "all" || document.tags.includes(selectedTag);
+        selectedTags.length === 0 ||
+        selectedTags.some((selectedTag) => documentTags.includes(selectedTag));
       if (!matchesTag) {
         return false;
       }
@@ -269,7 +275,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         body.includes(normalizedSearchQuery)
       );
     });
-  }, [data.documents, normalizedSearchQuery, selectedTag]);
+  }, [data.documents, normalizedSearchQuery, selectedTags]);
 
   const groupedDocuments = useMemo(() => {
     const grouped = new Map<StatusValue, MarkdownDocumentListItem[]>();
@@ -301,7 +307,15 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
     void persistStatusOrder(nextStatusOrder);
   }
 
-  function renderFilters(tagFilterId: string) {
+  function toggleTag(tag: string) {
+    setSelectedTags((current) =>
+      current.includes(tag)
+        ? current.filter((selectedTag) => selectedTag !== tag)
+        : [...current, tag],
+    );
+  }
+
+  function FilterArea() {
     return (
       <section className="grid gap-1 border px-2 pt-2 pb-1">
         <div className="flex items-center gap-1">
@@ -314,20 +328,32 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
             className="px-1"
           />
         </div>
-        <label htmlFor={tagFilterId}>tag</label>
-        <select
-          id={tagFilterId}
-          onChange={(event) => setSelectedTag(event.target.value)}
-          value={selectedTag}
-          className="border p-px"
-        >
-          <option value="all">all</option>
+        <div className="flex gap-2 items-center">
+          <span className="font-bold">tag</span>
+          <Button
+            disabled={selectedTags.length === 0}
+            onClick={() => setSelectedTags([])}
+            type="button"
+          >
+            タグ選択をクリア
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-1">
           {data.tags.map((tag) => (
-            <option key={tag} value={tag}>
-              {tag}
-            </option>
+            <label
+              className="inline-flex items-center gap-1 border px-1"
+              key={tag}
+            >
+              <input
+                checked={selectedTags.includes(tag)}
+                onChange={() => toggleTag(tag)}
+                type="checkbox"
+              />
+              <span>{tag}</span>
+            </label>
           ))}
-        </select>
+          {data.tags.length === 0 ? <span>-</span> : null}
+        </div>
         <StatusOrderMenu
           onChange={onStatusOrderChange}
           statusOrder={statusOrder}
@@ -361,7 +387,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         </TabsList>
 
         <TabsContent value="grid">
-          {renderFilters("tag-filter-grid")}
+          <FilterArea />
           <div className="grid gap-2">
             {statusOrder.map((status) => (
               <StatusGroup
@@ -375,7 +401,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         </TabsContent>
 
         <TabsContent value="table">
-          {renderFilters("tag-filter-table")}
+          <FilterArea />
           <div className="grid gap-2">
             {statusOrder.map((status) => (
               <StatusGroup
