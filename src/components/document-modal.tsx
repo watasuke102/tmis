@@ -23,9 +23,8 @@ export function DocumentModal({ document }: DocumentModalProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{document.title}</DialogTitle>
-          <DialogDescription>{document.filePath}</DialogDescription>
         </DialogHeader>
-        <DocumentDetail document={document} headingLevel="h2" />
+        <DocumentDetail document={document} />
       </DialogContent>
     </Dialog>
   );

@@ -30,14 +30,14 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       className={cn(
-        "fixed inset-0 grid max-h-screen w-screen grid-rows-[auto_1fr] overflow-auto border",
+        "fixed inset-0 grid max-h-screen w-screen grid-rows-[auto_auto_1fr] overflow-auto bg-background/90 p-4",
         className,
       )}
       ref={ref}
       {...props}
     >
-      <DialogClose className="inline-flex items-center justify-center border">
-        <X className="h-4 w-4" />
+      <DialogClose className="relative inline-flex items-center justify-center border py-1 hover:cursor-pointer">
+        <X className="h-4xl w-4xl" />
       </DialogClose>
       {children}
     </DialogPrimitive.Content>
@@ -46,7 +46,7 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.ComponentProps<"div">) => (
-  <div className={cn("grid gap-1", className)} {...props} />
+  <div className={cn("grid gap-1 pb-1 border-b", className)} {...props} />
 );
 
 const DialogTitle = React.forwardRef<
@@ -54,7 +54,7 @@ const DialogTitle = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
-    className={cn("text-base", className)}
+    className={cn("text-2xl font-bold", className)}
     ref={ref}
     {...props}
   />

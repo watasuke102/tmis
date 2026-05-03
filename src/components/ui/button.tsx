@@ -10,7 +10,10 @@ function Button({
 }: React.ComponentProps<"button">) {
   return (
     <button
-      className={cn("inline-flex items-center gap-1 border", className)}
+      className={cn(
+        "px-1 py-px inline-flex items-center gap-1 border hover:cursor-pointer",
+        className,
+      )}
       type={type}
       {...props}
     />

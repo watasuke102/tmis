@@ -65,11 +65,13 @@ type StatusOrderMenuProps = {
 function ErrorDetails({ error }: { error: MarkdownSyncErrorItem }) {
   if (error.errorDetails.kind === "frontmatter_validation") {
     return (
-      <ul>
+      <ul className="list-disc ml-4 pl-2">
         {error.errorDetails.issues.map((issue, index) => (
           <li key={`${error.filePath}-${index}`}>
-            <code>{issue.path.length > 0 ? issue.path : "(root)"}</code>:{" "}
-            {issue.message}
+            <code className="font-bold">
+              {issue.path.length > 0 ? issue.path : "(root)"}
+            </code>
+            : {issue.message}
           </li>
         ))}
       </ul>
@@ -81,23 +83,23 @@ function ErrorDetails({ error }: { error: MarkdownSyncErrorItem }) {
 
 function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
   return (
-    <section className="grid gap-1 border">
+    <section className="px-2 grid gap-1">
       <header className="flex items-center gap-1">
-        <h2>{status}</h2>
+        <h2 className="text-2xl font-bold">{status}</h2>
         <Badge>{documents.length}</Badge>
       </header>
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-1 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
           {documents.map((document) => (
-            <article className="grid gap-1 border" key={document.filePath}>
-              <h3>
-                <Link href={`/${encodeURIComponent(document.title)}`}>
-                  {document.title}
-                </Link>
-              </h3>
-              <p>{document.abstract}</p>
+            <Link
+              href={`/${encodeURIComponent(document.title)}`}
+              key={document.filePath}
+              className="grid gap-1 border rounded-xs p-1"
+            >
+              <h3 className="font-bold hover:underline">{document.title}</h3>
+              <p className="text-sm">{document.abstract}</p>
               <p>{document.tags.join(", ")}</p>
-            </article>
+            </Link>
           ))}
           {documents.length === 0 ? <p>No documents</p> : null}
         </div>
@@ -148,15 +150,14 @@ function StatusOrderItem({ status }: { status: StatusValue }) {
 
   return (
     <li
-      className="flex items-center gap-1 border"
+      className="flex items-center gap-1 border bg-foreground text-background hover:cursor-move"
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
+      aria-label={`ドラッグして${status}の順序を並び替え`}
     >
-      <Button
-        {...attributes}
-        {...listeners}
-        aria-label={`${status} をドラッグして並び替え`}
-      >
+      <Button className="border-none hover:cursor-move">
         <GripVertical className="h-4 w-4" />
       </Button>
       <span>{status}</span>
@@ -184,13 +185,17 @@ function StatusOrderMenu({ statusOrder, onChange }: StatusOrderMenuProps) {
   }
 
   return (
-    <div className="relative grid gap-1">
-      <Button onClick={() => setOpen((current) => !current)} type="button">
+    <div className="inline relative grid gap-1">
+      <Button
+        onClick={() => setOpen((current) => !current)}
+        type="button"
+        className="text-background bg-foreground rounded-full px-2 mt-1 text-sm"
+      >
         <SlidersHorizontal className="h-4 w-4" />
         status順を並び替え
       </Button>
       {open ? (
-        <div className="absolute left-0 top-full z-10 grid w-64 gap-1 border">
+        <div className="absolute left-0 top-full z-10 grid w-64 gap-1 border bg-background p-2 rounded-sm">
           <DndContext
             collisionDetection={closestCenter}
             onDragEnd={onDragEnd}
@@ -298,7 +303,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
 
   function renderFilters(tagFilterId: string) {
     return (
-      <section className="grid gap-1 border">
+      <section className="grid gap-1 border px-2 pt-2 pb-1">
         <div className="flex items-center gap-1">
           <Search className="h-4 w-4" />
           <Input
@@ -306,6 +311,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
             placeholder="title, abstract, body"
             type="search"
             value={searchQuery}
+            className="px-1"
           />
         </div>
         <label htmlFor={tagFilterId}>tag</label>
@@ -313,6 +319,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
           id={tagFilterId}
           onChange={(event) => setSelectedTag(event.target.value)}
           value={selectedTag}
+          className="border p-px"
         >
           <option value="all">all</option>
           {data.tags.map((tag) => (
@@ -332,7 +339,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   return (
     <section className="grid gap-2">
       <Tabs
-        className="grid gap-2"
+        className="grid gap-3 grid-rows-[auto_1fr]"
         onValueChange={(value) => setActiveTab(value as TabValue)}
         value={activeTab}
       >
@@ -384,14 +391,13 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         <TabsContent value="errors">
           <section className="grid gap-1">
             {data.syncErrors.map((error) => (
-              <article className="grid gap-1 border" key={error.filePath}>
-                <h3>{error.filePath}</h3>
-                <p>{error.errorType}</p>
-                <p>{error.errorMessage}</p>
+              <article className="grid gap-1 border p-1" key={error.filePath}>
+                <h3 className="text-lg font-bold">{error.filePath}</h3>
+                <p className="text-primary">{error.errorType}</p>
                 <ErrorDetails error={error} />
               </article>
             ))}
-            {data.syncErrors.length === 0 ? <p>No validation errors</p> : null}
+            {data.syncErrors.length === 0 ? <p>No errors</p> : null}
           </section>
         </TabsContent>
       </Tabs>

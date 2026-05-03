@@ -10,10 +10,7 @@ type DocumentDetailProps = {
   headingLevel?: "h1" | "h2";
 };
 
-export function DocumentDetail({
-  document,
-  headingLevel = "h1",
-}: DocumentDetailProps) {
+export function DocumentDetail({ document }: DocumentDetailProps) {
   const HeadingTag = headingLevel;
   useEffect(() => {
     const previousTitle = window.document.title;
@@ -25,7 +22,6 @@ export function DocumentDetail({
 
   return (
     <article className="grid gap-2">
-      <HeadingTag>{document.title}</HeadingTag>
       <dl>
         <dt>status</dt>
         <dd>{document.status}</dd>

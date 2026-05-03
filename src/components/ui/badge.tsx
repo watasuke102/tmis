@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 function Badge({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
-      className={cn("inline-flex items-center border", className)}
+      className={cn("inline-flex items-center border px-1", className)}
       {...props}
     />
   );
