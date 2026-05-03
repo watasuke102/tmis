@@ -107,9 +107,9 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
             <Link
               href={`/${encodeURIComponent(document.title)}`}
               key={document.filePath}
-              className="grid grid-rows-subgrid row-span-4 gap-1 border rounded-xs"
+              className="group grid grid-rows-subgrid row-span-4 gap-1 border rounded-xs hover:bg-foreground/8"
             >
-              <h3 className="font-bold p-1 hover:underline">
+              <h3 className="font-bold p-1 group-hover:underline">
                 {document.title}
               </h3>
               <div className="flex justify-between items-center gap-1 border-t px-1 pt-1 text-sm text-foreground/80">
@@ -129,6 +129,7 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
           <TableHeader>
             <TableRow>
               <TableHead>title</TableHead>
+              <TableHead>abstract</TableHead>
               <TableHead>conference</TableHead>
               <TableHead>tags</TableHead>
               <TableHead>published_at</TableHead>
@@ -145,6 +146,7 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
                     {document.title}
                   </Link>
                 </TableCell>
+                <TableCell>{document.abstract}</TableCell>
                 <TableCell>{document.conference}</TableCell>
                 <TableCell className="p-1">
                   <TagList tags={document.tags} />

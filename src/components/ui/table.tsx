@@ -2,7 +2,11 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
-  return <table className={cn("w-full border", className)} {...props} />;
+  return (
+    <div className="min-w-full overflow-auto">
+      <table className={cn("border", className)} {...props} />
+    </div>
+  );
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
@@ -18,11 +22,19 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
-  return <th className={cn("border", className)} {...props} />;
+  return (
+    <th
+      className={cn(
+        "border border-x-background border-y-foreground first:border-l-foreground last:border-r-foreground px-1 bg-foreground text-background",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("border", className)} {...props} />;
+  return <td className={cn("border px-1", className)} {...props} />;
 }
 
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow };

@@ -30,23 +30,32 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       className={cn(
-        "fixed inset-0 grid max-h-screen w-screen grid-rows-[auto_auto_1fr] overflow-auto bg-background/90 p-4",
+        "fixed inset-0 grid max-h-screen w-screen grid-rows-[auto_auto_1fr] overflow-auto bg-background/94 p-4",
         className,
       )}
       ref={ref}
       {...props}
     >
-      <DialogClose className="relative inline-flex items-center justify-center border py-1 hover:cursor-pointer">
-        <X className="h-4xl w-4xl" />
-      </DialogClose>
       {children}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
-const DialogHeader = ({ className, ...props }: React.ComponentProps<"div">) => (
-  <div className={cn("grid gap-1 pb-1 border-b", className)} {...props} />
+const DialogHeader = ({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) => (
+  <div
+    className={cn("flex gap-3 justify-between w-full", className)}
+    {...props}
+  >
+    <div className="grid gap-1 pb-1">{children}</div>
+    <DialogClose className="relative inline-flex items-center justify-center aspect-square border rounded-sm py-1 hover:cursor-pointer">
+      <X />
+    </DialogClose>
+  </div>
 );
 
 const DialogTitle = React.forwardRef<

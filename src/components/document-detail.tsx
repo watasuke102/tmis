@@ -23,34 +23,44 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
 
   return (
     <article className="flex flex-col gap-2">
-      <dl>
-        <dt>status</dt>
-        <dd>{document.status}</dd>
-        <dt>published_at</dt>
-        <dd>{document.publishedAt}</dd>
-        <dt>conference</dt>
-        <dd>{document.conference}</dd>
-        <dt>tags</dt>
-        <dd>
-          <TagList tags={document.tags} />
-        </dd>
-        <dt>url</dt>
-        <dd>
-          <Link href={document.url} rel="noreferrer" target="_blank">
+      <div className="grid grid-cols-[max-content_1fr] gap-x-4 border-b pb-3 border-b-2">
+        <span className="font-bold">url</span>
+        <span>
+          <Link
+            href={document.url}
+            rel="noreferrer"
+            target="_blank"
+            className="text-primary underline"
+          >
             {document.url}
           </Link>
-        </dd>
+        </span>
         {document.pdfUrl ? (
           <>
-            <dt>pdf_url</dt>
-            <dd>
-              <Link href={document.pdfUrl} rel="noreferrer" target="_blank">
+            <span className="font-bold">pdf_url</span>
+            <span>
+              <Link
+                href={document.pdfUrl}
+                rel="noreferrer"
+                target="_blank"
+                className="text-primary underline"
+              >
                 {document.pdfUrl}
               </Link>
-            </dd>
+            </span>
           </>
         ) : null}
-      </dl>
+        <span className="font-bold">status</span>
+        <span>{document.status}</span>
+        <span className="font-bold">published_at</span>
+        <span>{document.publishedAt.slice(0, 10)}</span>
+        <span className="font-bold">conference</span>
+        <span>{document.conference}</span>
+        <span className="font-bold">tags</span>
+        <span>
+          <TagList tags={document.tags} />
+        </span>
+      </div>
       <article className="markdown">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {document.body}
