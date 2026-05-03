@@ -86,7 +86,7 @@ function ErrorDetails({ error }: { error: MarkdownSyncErrorItem }) {
 function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
   return (
     <section className="px-2 grid gap-1">
-      <header className="flex items-center gap-1">
+      <header className="flex items-center gap-2">
         <h2 className="text-2xl font-bold">{status}</h2>
         <Badge>{documents.length}</Badge>
       </header>
@@ -96,11 +96,19 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
             <Link
               href={`/${encodeURIComponent(document.title)}`}
               key={document.filePath}
-              className="grid gap-1 border rounded-xs p-1"
+              className="grid grid-rows-subgrid row-span-4 gap-1 border rounded-xs"
             >
-              <h3 className="font-bold hover:underline">{document.title}</h3>
-              <p className="text-sm">{document.abstract}</p>
-              <TagList tags={document.tags} />
+              <h3 className="font-bold p-1 hover:underline">
+                {document.title}
+              </h3>
+              <div className="flex justify-between items-center gap-1 border-t px-1 pt-1 text-sm text-foreground/80">
+                <span>{document.publishedAt.slice(0, 10)}</span>
+                <span>{document.conference}</span>
+              </div>
+              <p className="text-sm px-1">{document.abstract}</p>
+              <div className="px-2 pb-2">
+                <TagList tags={document.tags} />
+              </div>
             </Link>
           ))}
           {documents.length === 0 ? <p>No documents</p> : null}
@@ -119,15 +127,18 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
             {documents.map((document) => (
               <TableRow key={document.filePath}>
                 <TableCell>
-                  <Link href={`/${encodeURIComponent(document.title)}`}>
+                  <Link
+                    href={`/${encodeURIComponent(document.title)}`}
+                    className="font-bold hover:underline"
+                  >
                     {document.title}
                   </Link>
                 </TableCell>
                 <TableCell>{document.conference}</TableCell>
-                <TableCell>
+                <TableCell className="p-1">
                   <TagList tags={document.tags} />
                 </TableCell>
-                <TableCell>{document.publishedAt}</TableCell>
+                <TableCell>{document.publishedAt.slice(0, 10)}</TableCell>
               </TableRow>
             ))}
             {documents.length === 0 ? (
@@ -199,7 +210,7 @@ function StatusOrderMenu({ statusOrder, onChange }: StatusOrderMenuProps) {
         status順を並び替え
       </Button>
       {open ? (
-        <div className="absolute left-0 top-full z-10 grid w-64 gap-1 border bg-background p-2 rounded-sm">
+        <div className="absolute right-2 top-full z-10 grid w-64 gap-1 border bg-background px-3 py-2 rounded-sm">
           <DndContext
             collisionDetection={closestCenter}
             onDragEnd={onDragEnd}
@@ -209,7 +220,7 @@ function StatusOrderMenu({ statusOrder, onChange }: StatusOrderMenuProps) {
               items={statusOrder}
               strategy={verticalListSortingStrategy}
             >
-              <ul className="grid gap-1">
+              <ul className="grid gap-1 ml-0!">
                 {statusOrder.map((status) => (
                   <StatusOrderItem key={status} status={status} />
                 ))}
@@ -318,22 +329,29 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   function FilterArea() {
     return (
       <section className="grid gap-1 border px-2 pt-2 pb-1">
-        <div className="flex items-center gap-1">
-          <Search className="h-4 w-4" />
-          <Input
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="title, abstract, body"
-            type="search"
-            value={searchQuery}
-            className="px-1"
+        <div className="flex gap-3 items-center justify-between">
+          <div className="flex grow items-center gap-1">
+            <Search className="h-4 w-4" />
+            <Input
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="title, abstract, body"
+              type="search"
+              value={searchQuery}
+              className="px-1 grow"
+            />
+          </div>
+          <StatusOrderMenu
+            onChange={onStatusOrderChange}
+            statusOrder={statusOrder}
           />
         </div>
         <div className="flex gap-2 items-center">
-          <span className="font-bold">tag</span>
+          <span className="text-lg font-bold">tag</span>
           <Button
             disabled={selectedTags.length === 0}
             onClick={() => setSelectedTags([])}
             type="button"
+            className="text-sm"
           >
             タグ選択をクリア
           </Button>
@@ -341,7 +359,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         <div className="flex flex-wrap gap-1">
           {data.tags.map((tag) => (
             <label
-              className="inline-flex items-center gap-1 border px-1"
+              className="inline-flex gap-1 items-center border px-1 text-sm select-none"
               key={tag}
             >
               <input
@@ -354,10 +372,6 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
           ))}
           {data.tags.length === 0 ? <span>-</span> : null}
         </div>
-        <StatusOrderMenu
-          onChange={onStatusOrderChange}
-          statusOrder={statusOrder}
-        />
       </section>
     );
   }
@@ -386,7 +400,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="grid">
+        <TabsContent value="grid" className="grid-rows-[auto_1fr]">
           <FilterArea />
           <div className="grid gap-2">
             {statusOrder.map((status) => (
@@ -400,7 +414,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
           </div>
         </TabsContent>
 
-        <TabsContent value="table">
+        <TabsContent value="table" className="grid-rows-[auto_1fr]">
           <FilterArea />
           <div className="grid gap-2">
             {statusOrder.map((status) => (
