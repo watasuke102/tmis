@@ -112,13 +112,28 @@ function parseErrorDetails(
 }
 
 function normalizeStatusOrder(input: string[]): StatusValue[] {
-  const present = new Set(input);
-  const normalized = statusValues.filter((status) => present.has(status));
+  const allowed = new Set<StatusValue>(statusValues);
+  const seen = new Set<StatusValue>();
+  const normalized: StatusValue[] = [];
+
+  for (const value of input) {
+    if (!allowed.has(value as StatusValue)) {
+      continue;
+    }
+    const status = value as StatusValue;
+    if (seen.has(status)) {
+      continue;
+    }
+    normalized.push(status);
+    seen.add(status);
+  }
+
   for (const status of statusValues) {
-    if (!normalized.includes(status)) {
+    if (!seen.has(status)) {
       normalized.push(status);
     }
   }
+
   return normalized;
 }
 
@@ -146,16 +161,15 @@ export function getStatusOrder(): StatusValue[] {
 
 export function updateStatusOrder(statusOrder: StatusValue[]): void {
   ensureDatabase();
+  ensureStatusSettingsRows();
 
-  for (const [index, status] of statusOrder.entries()) {
-    db.insert(statusSettings)
-      .values({ status, sortOrder: index })
-      .onConflictDoUpdate({
-        target: statusSettings.status,
-        set: { sortOrder: index },
-      })
-      .run();
-  }
+  db.transaction((tx) => {
+    tx.delete(statusSettings).run();
+
+    for (const [index, status] of statusOrder.entries()) {
+      tx.insert(statusSettings).values({ status, sortOrder: index }).run();
+    }
+  });
 }
 
 export function getDocuments(): MarkdownDocumentListItem[] {
@@ -209,9 +223,9 @@ export function getDashboardData(): MarkdownDashboardData {
   const documentsData = getDocuments();
   const errorsData = getSyncErrors();
   const statusOrder = getStatusOrder();
-  const tags = [...new Set(documentsData.flatMap((document) => splitTags(document.tags)))].sort((left, right) =>
-    left.localeCompare(right),
-  );
+  const tags = [
+    ...new Set(documentsData.flatMap((document) => splitTags(document.tags))),
+  ].sort((left, right) => left.localeCompare(right));
 
   return {
     documents: documentsData,

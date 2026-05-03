@@ -64,6 +64,17 @@ type StatusOrderMenuProps = {
   onChange: (statusOrder: StatusValue[]) => void;
 };
 
+type FilterAreaProps = {
+  data: MarkdownDashboardData;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  selectedTags: string[];
+  onClearSelectedTags: () => void;
+  onToggleTag: (tag: string) => void;
+  statusOrder: StatusValue[];
+  onStatusOrderChange: (statusOrder: StatusValue[]) => void;
+};
+
 function ErrorDetails({ error }: { error: MarkdownSyncErrorItem }) {
   if (error.errorDetails.kind === "frontmatter_validation") {
     return (
@@ -233,6 +244,65 @@ function StatusOrderMenu({ statusOrder, onChange }: StatusOrderMenuProps) {
   );
 }
 
+function FilterArea({
+  data,
+  searchQuery,
+  onSearchQueryChange,
+  selectedTags,
+  onClearSelectedTags,
+  onToggleTag,
+  statusOrder,
+  onStatusOrderChange,
+}: FilterAreaProps) {
+  return (
+    <section className="grid gap-1 border px-2 pt-2 pb-1">
+      <div className="flex gap-3 items-center justify-between">
+        <div className="flex grow items-center gap-1">
+          <Search className="h-4 w-4" />
+          <Input
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+            placeholder="title, abstract, body"
+            type="search"
+            value={searchQuery}
+            className="px-1 grow"
+          />
+        </div>
+        <StatusOrderMenu
+          onChange={onStatusOrderChange}
+          statusOrder={statusOrder}
+        />
+      </div>
+      <div className="flex gap-2 items-center">
+        <span className="text-lg font-bold">tag</span>
+        <Button
+          disabled={selectedTags.length === 0}
+          onClick={onClearSelectedTags}
+          type="button"
+          className="text-sm"
+        >
+          タグ選択をクリア
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {data.tags.map((tag) => (
+          <label
+            className="inline-flex gap-1 items-center border px-1 text-sm select-none"
+            key={tag}
+          >
+            <input
+              checked={selectedTags.includes(tag)}
+              onChange={() => onToggleTag(tag)}
+              type="checkbox"
+            />
+            <span>{tag}</span>
+          </label>
+        ))}
+        {data.tags.length === 0 ? <span>-</span> : null}
+      </div>
+    </section>
+  );
+}
+
 export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   const router = useRouter();
   const hasMountedRef = useRef(false);
@@ -326,56 +396,6 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
     );
   }
 
-  function FilterArea() {
-    return (
-      <section className="grid gap-1 border px-2 pt-2 pb-1">
-        <div className="flex gap-3 items-center justify-between">
-          <div className="flex grow items-center gap-1">
-            <Search className="h-4 w-4" />
-            <Input
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="title, abstract, body"
-              type="search"
-              value={searchQuery}
-              className="px-1 grow"
-            />
-          </div>
-          <StatusOrderMenu
-            onChange={onStatusOrderChange}
-            statusOrder={statusOrder}
-          />
-        </div>
-        <div className="flex gap-2 items-center">
-          <span className="text-lg font-bold">tag</span>
-          <Button
-            disabled={selectedTags.length === 0}
-            onClick={() => setSelectedTags([])}
-            type="button"
-            className="text-sm"
-          >
-            タグ選択をクリア
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {data.tags.map((tag) => (
-            <label
-              className="inline-flex gap-1 items-center border px-1 text-sm select-none"
-              key={tag}
-            >
-              <input
-                checked={selectedTags.includes(tag)}
-                onChange={() => toggleTag(tag)}
-                type="checkbox"
-              />
-              <span>{tag}</span>
-            </label>
-          ))}
-          {data.tags.length === 0 ? <span>-</span> : null}
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="grid gap-2">
       <Tabs
@@ -401,7 +421,16 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         </TabsList>
 
         <TabsContent value="grid" className="grid-rows-[auto_1fr]">
-          <FilterArea />
+          <FilterArea
+            data={data}
+            onClearSelectedTags={() => setSelectedTags([])}
+            onSearchQueryChange={setSearchQuery}
+            onStatusOrderChange={onStatusOrderChange}
+            onToggleTag={toggleTag}
+            searchQuery={searchQuery}
+            selectedTags={selectedTags}
+            statusOrder={statusOrder}
+          />
           <div className="grid gap-2">
             {statusOrder.map((status) => (
               <StatusGroup
@@ -415,7 +444,16 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         </TabsContent>
 
         <TabsContent value="table" className="grid-rows-[auto_1fr]">
-          <FilterArea />
+          <FilterArea
+            data={data}
+            onClearSelectedTags={() => setSelectedTags([])}
+            onSearchQueryChange={setSearchQuery}
+            onStatusOrderChange={onStatusOrderChange}
+            onToggleTag={toggleTag}
+            searchQuery={searchQuery}
+            selectedTags={selectedTags}
+            statusOrder={statusOrder}
+          />
           <div className="grid gap-2">
             {statusOrder.map((status) => (
               <StatusGroup
