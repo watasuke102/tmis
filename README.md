@@ -22,14 +22,24 @@ cp .env.example .env
 npm run dev
 ```
 
-## Implemented features
+## frontmatter
 
-- Frontmatter validation: `src/lib/schema/frontmatter.ts`
-- Drizzle schema: `src/lib/db/schema.ts`
-- SQLite connection/bootstrap: `src/lib/db/index.ts` (`data/sqlite.db`)
-- Markdown parse + mtime differential sync: `src/lib/markdown/*`
-- Sync API: `GET/POST /api/sync`
-- Main tabs screen with list/error tabs and error count badge
-- Grid/Table view switch and status-group DnD reorder persistence
-- Search over `title` / `abstract` / `body` and tag filter
-- Detail modal with intercepting routes (`/[title]`, `@modal/(.)[title]`)
+See `src/types/frontmatter.ts` for details on the expected frontmatter fields in the markdown files. The example is as follows:
+
+```markdown
+---
+url: https://example.com/research
+pdf_url: https://example.com/research/thesis.pdf
+published_at: 2026-01-23
+abstract: Text
+tags:
+  - Test1
+  - Test2
+Conference: Example Conference
+status: read
+---
+```
+
+## License
+
+Dual-licensed; MIT (`LICENSE-MIT` or [The MIT License – Open Source Initiative](https://opensource.org/license/mit/)) or MIT SUSHI-WARE LICENSE (`LICENSE-MIT_SUSHI.md`)
