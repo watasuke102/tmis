@@ -12,7 +12,7 @@ export function TagList({ tags }: TagListProps) {
   }
 
   return (
-    <span className="flex flex-wrap gap-2">
+    <span className="flex flex-wrap gap-x-2 gap-y-1">
       {normalizedTags.map((tag) => (
         <span
           key={tag}

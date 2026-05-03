@@ -128,8 +128,8 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>title</TableHead>
-              <TableHead>abstract</TableHead>
+              <TableHead className="min-w-[35vw]">title</TableHead>
+              <TableHead className="min-w-[50vw]">abstract</TableHead>
               <TableHead>conference</TableHead>
               <TableHead>tags</TableHead>
               <TableHead>published_at</TableHead>
@@ -146,8 +146,12 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
                     {document.title}
                   </Link>
                 </TableCell>
-                <TableCell>{document.abstract}</TableCell>
-                <TableCell>{document.conference}</TableCell>
+                <TableCell className="text-sm p-2">
+                  {document.abstract}
+                </TableCell>
+                <TableCell className="text-nowrap">
+                  {document.conference}
+                </TableCell>
                 <TableCell className="p-1">
                   <TagList tags={document.tags} />
                 </TableCell>
@@ -156,7 +160,7 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
             ))}
             {documents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4}>No documents</TableCell>
+                <TableCell colSpan={5}>No documents</TableCell>
               </TableRow>
             ) : null}
           </TableBody>
