@@ -137,7 +137,7 @@ function SortableGridDocumentCard({
       <header className="flex items-center justify-between gap-1 p-1">
         <Link
           href={`/${encodeURIComponent(document.title)}`}
-          className="font-bold group-hover:underline"
+          className="font-bold mb-auto group-hover:underline"
         >
           {document.title}
         </Link>
@@ -241,7 +241,7 @@ function StatusGroup({
 
   return (
     <section className="px-2 grid gap-1">
-      <header className="flex items-center gap-2">
+      <header className="flex items-center gap-2 mb-3 pb-px border-b-4 border-primary">
         <h2 className="text-2xl font-bold">{status}</h2>
         <Badge>{documents.length}</Badge>
       </header>
@@ -450,7 +450,7 @@ function FilterArea({
   onStatusOrderChange,
 }: FilterAreaProps) {
   return (
-    <section className="grid gap-1 border px-2 pt-2 pb-1">
+    <section className="grid gap-2 p-2 border-b-2 ">
       <div className="flex gap-3 items-center justify-between">
         <div className="flex grow items-center gap-1">
           <Search className="h-4 w-4" />
@@ -627,7 +627,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   return (
     <section className="grid gap-2">
       <Tabs
-        className="grid gap-3 grid-rows-[auto_1fr]"
+        className="grid grid-rows-[auto_1fr]"
         onValueChange={(value) => setActiveTab(value as TabValue)}
         value={activeTab}
       >
@@ -703,9 +703,9 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
         </TabsContent>
 
         <TabsContent value="errors">
-          <section className="grid gap-1">
+          <section className="grid pt-3 gap-2">
             {data.syncErrors.map((error) => (
-              <article className="grid gap-1 border p-1" key={error.filePath}>
+              <article className="grid border p-1 mx-2" key={error.filePath}>
                 <h3 className="text-lg font-bold">{error.filePath}</h3>
                 <p className="text-primary">{error.errorType}</p>
                 <ErrorDetails error={error} />
