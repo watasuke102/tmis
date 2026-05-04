@@ -175,16 +175,12 @@ function SortableTableDocumentRow({
       style={style}
       className="grid grid-cols-[36px_minmax(0,4fr)_minmax(0,6fr)_minmax(0,2fr)_minmax(0,3fr)_9rem] gap-0 items-start"
     >
-      <div className="h-full outline p-1 flex justify-center">
-        <Button
-          type="button"
-          className="h-6 w-6 border-none hover:cursor-move"
-          {...attributes}
-          {...listeners}
-          aria-label={`ドラッグして${document.title}の順序を並び替え`}
-        >
-          <GripVertical className="h-4 w-4" />
-        </Button>
+      <div
+        className="h-full outline p-1 pt-2 flex justify-center hover:cursor-move"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
       </div>
       <div className="h-full outline p-1">
         <Link
