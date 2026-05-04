@@ -29,14 +29,6 @@ import { TagList } from "@/components/tag-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   MarkdownDashboardData,
@@ -178,8 +170,12 @@ function SortableTableDocumentRow({
   };
 
   return (
-    <TableRow ref={setNodeRef} style={style}>
-      <TableCell className="w-12 p-1">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid grid-cols-[36px_minmax(0,4fr)_minmax(0,6fr)_minmax(0,2fr)_minmax(0,3fr)_9rem] gap-0 items-start"
+    >
+      <div className="h-full outline p-1 flex justify-center">
         <Button
           type="button"
           className="h-6 w-6 border-none hover:cursor-move"
@@ -189,22 +185,26 @@ function SortableTableDocumentRow({
         >
           <GripVertical className="h-4 w-4" />
         </Button>
-      </TableCell>
-      <TableCell>
+      </div>
+      <div className="h-full outline p-1">
         <Link
           href={`/${encodeURIComponent(document.title)}`}
           className="font-bold hover:underline"
         >
           {document.title}
         </Link>
-      </TableCell>
-      <TableCell className="text-sm p-2">{document.abstract}</TableCell>
-      <TableCell className="text-nowrap">{document.conference}</TableCell>
-      <TableCell className="p-1">
+      </div>
+      <div className="h-full outline text-sm p-1">{document.abstract}</div>
+      <div className="h-full outline text-nowrap p-1">
+        {document.conference}
+      </div>
+      <div className="h-full outline p-1">
         <TagList tags={document.tags} />
-      </TableCell>
-      <TableCell>{document.publishedAt.slice(0, 10)}</TableCell>
-    </TableRow>
+      </div>
+      <div className="h-full outline p-1">
+        {document.publishedAt.slice(0, 10)}
+      </div>
+    </div>
   );
 }
 
@@ -292,18 +292,26 @@ function StatusGroup({
           </div>
         )
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">sort</TableHead>
-              <TableHead className="min-w-[35vw]">title</TableHead>
-              <TableHead className="min-w-[50vw]">abstract</TableHead>
-              <TableHead>conference</TableHead>
-              <TableHead>tags</TableHead>
-              <TableHead>published_at</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <div className="grid pb-8">
+          <div className="grid grid-cols-[36px_minmax(0,4fr)_minmax(0,6fr)_minmax(0,2fr)_minmax(0,3fr)_9rem] gap-0 font-bold">
+            <div className="p-1 outline bg-foreground text-background"></div>
+            <div className="p-1 outline bg-foreground text-background">
+              title
+            </div>
+            <div className="p-1 outline bg-foreground text-background">
+              abstract
+            </div>
+            <div className="p-1 outline bg-foreground text-background">
+              conference
+            </div>
+            <div className="p-1 outline bg-foreground text-background">
+              tags
+            </div>
+            <div className="p-1 outline bg-foreground text-background">
+              published_at
+            </div>
+          </div>
+          <div className="grid">
             {shouldUseDnD ? (
               <DndContext
                 collisionDetection={closestCenter}
@@ -324,36 +332,39 @@ function StatusGroup({
               </DndContext>
             ) : (
               documents.map((document) => (
-                <TableRow key={document.filePath}>
-                  <TableCell />
-                  <TableCell>
+                <div
+                  key={document.filePath}
+                  className="grid grid-cols-[36px_minmax(0,4fr)_minmax(0,6fr)_minmax(0,2fr)_minmax(0,3fr)_9rem] gap-0 items-start"
+                >
+                  <div className="h-fill outline p-1" />
+                  <div className="h-fill outline p-1">
                     <Link
                       href={`/${encodeURIComponent(document.title)}`}
                       className="font-bold hover:underline"
                     >
                       {document.title}
                     </Link>
-                  </TableCell>
-                  <TableCell className="text-sm p-2">
+                  </div>
+                  <div className="h-fill outline text-sm p-1">
                     {document.abstract}
-                  </TableCell>
-                  <TableCell className="text-nowrap">
+                  </div>
+                  <div className="h-fill outline text-nowrap p-1">
                     {document.conference}
-                  </TableCell>
-                  <TableCell className="p-1">
+                  </div>
+                  <div className="h-fill outline p-1">
                     <TagList tags={document.tags} />
-                  </TableCell>
-                  <TableCell>{document.publishedAt.slice(0, 10)}</TableCell>
-                </TableRow>
+                  </div>
+                  <div className="h-fill outline p-1">
+                    {document.publishedAt.slice(0, 10)}
+                  </div>
+                </div>
               ))
             )}
             {documents.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6}>No documents</TableCell>
-              </TableRow>
+              <div className="p-1">No documents</div>
             ) : null}
-          </TableBody>
-        </Table>
+          </div>
+        </div>
       )}
     </section>
   );
