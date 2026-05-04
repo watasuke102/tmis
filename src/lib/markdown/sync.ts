@@ -89,6 +89,8 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
     .select({
       filePath: documents.filePath,
       fileMtimeMs: documents.fileMtimeMs,
+      status: documents.status,
+      statusSortOrder: documents.statusSortOrder,
     })
     .from(documents)
     .all();
@@ -101,8 +103,19 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
     .all();
 
   const existingByPath = new Map<string, number>();
+  const existingDocumentsByPath = new Map<
+    string,
+    {
+      status: (typeof existingDocuments)[number]["status"];
+      statusSortOrder: number;
+    }
+  >();
   for (const row of existingDocuments) {
     existingByPath.set(row.filePath, row.fileMtimeMs);
+    existingDocumentsByPath.set(row.filePath, {
+      status: row.status,
+      statusSortOrder: row.statusSortOrder,
+    });
   }
   for (const row of existingErrors) {
     if (!existingByPath.has(row.filePath)) {
@@ -123,6 +136,32 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
     const parsed = await parseMarkdownFile(file);
 
     if (parsed.ok) {
+      const existingDocument = existingDocumentsByPath.get(parsed.filePath);
+      let statusSortOrder = 0;
+      if (existingDocument && existingDocument.status === parsed.status) {
+        statusSortOrder = existingDocument.statusSortOrder;
+      } else if (
+        existingDocument &&
+        existingDocument.status !== parsed.status
+      ) {
+        db.update(documents)
+          .set({
+            statusSortOrder: sql`${documents.statusSortOrder} + 1`,
+          })
+          .where(eq(documents.status, parsed.status))
+          .run();
+        statusSortOrder = 0;
+      } else {
+        const maxOrderRow = db
+          .select({
+            maxOrder: sql<number | null>`max(${documents.statusSortOrder})`,
+          })
+          .from(documents)
+          .where(eq(documents.status, parsed.status))
+          .get();
+        statusSortOrder = Number(maxOrderRow?.maxOrder ?? -1) + 1;
+      }
+
       db.insert(documents)
         .values({
           filePath: parsed.filePath,
@@ -135,6 +174,7 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
           tags: JSON.stringify(parsed.tags),
           conference: parsed.conference,
           status: parsed.status,
+          statusSortOrder,
           body: parsed.body,
           bodyHtml: parsed.bodyHtml,
           createdAt: now,
@@ -152,6 +192,7 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
             tags: JSON.stringify(parsed.tags),
             conference: parsed.conference,
             status: parsed.status,
+            statusSortOrder,
             body: parsed.body,
             bodyHtml: parsed.bodyHtml,
             updatedAt: now,

@@ -178,7 +178,12 @@ export function getDocuments(): MarkdownDocumentListItem[] {
   const rows = db
     .select()
     .from(documents)
-    .orderBy(asc(documents.updatedAt), asc(documents.title))
+    .orderBy(
+      asc(documents.status),
+      asc(documents.statusSortOrder),
+      asc(documents.updatedAt),
+      asc(documents.title),
+    )
     .all();
 
   return rows.map((row) => ({
@@ -195,6 +200,56 @@ export function getDocuments(): MarkdownDocumentListItem[] {
     bodyHtml: row.bodyHtml,
     updatedAt: row.updatedAt,
   }));
+}
+
+export function updateDocumentOrder(
+  status: StatusValue,
+  orderedFilePaths: string[],
+): void {
+  ensureDatabase();
+
+  const currentRows = db
+    .select({ filePath: documents.filePath })
+    .from(documents)
+    .where(eq(documents.status, status))
+    .orderBy(
+      asc(documents.statusSortOrder),
+      asc(documents.updatedAt),
+      asc(documents.title),
+    )
+    .all();
+  const currentFilePaths = currentRows.map((row) => row.filePath);
+
+  if (orderedFilePaths.length !== currentFilePaths.length) {
+    throw new Error(
+      "orderedFilePaths must include every document in the status",
+    );
+  }
+
+  const currentSet = new Set(currentFilePaths);
+  const orderedSet = new Set(orderedFilePaths);
+  if (
+    orderedSet.size !== orderedFilePaths.length ||
+    orderedSet.size !== currentSet.size
+  ) {
+    throw new Error(
+      "orderedFilePaths contains duplicate or missing file paths",
+    );
+  }
+  for (const filePath of orderedFilePaths) {
+    if (!currentSet.has(filePath)) {
+      throw new Error(`Unknown file path in orderedFilePaths: ${filePath}`);
+    }
+  }
+
+  db.transaction((tx) => {
+    for (const [index, filePath] of orderedFilePaths.entries()) {
+      tx.update(documents)
+        .set({ statusSortOrder: index })
+        .where(eq(documents.filePath, filePath))
+        .run();
+    }
+  });
 }
 
 export function getSyncErrors(): MarkdownSyncErrorItem[] {

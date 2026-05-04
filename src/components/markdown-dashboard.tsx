@@ -48,6 +48,7 @@ import { splitTags } from "@/lib/tags";
 
 type ViewMode = "grid" | "table";
 type TabValue = ViewMode | "errors";
+type DocumentsByStatus = Record<StatusValue, MarkdownDocumentListItem[]>;
 
 type MarkdownDashboardProps = {
   data: MarkdownDashboardData;
@@ -57,6 +58,8 @@ type StatusGroupProps = {
   status: StatusValue;
   documents: MarkdownDocumentListItem[];
   viewMode: ViewMode;
+  canReorder: boolean;
+  onDocumentOrderChange: (nextDocuments: MarkdownDocumentListItem[]) => void;
 };
 
 type StatusOrderMenuProps = {
@@ -74,6 +77,23 @@ type FilterAreaProps = {
   statusOrder: StatusValue[];
   onStatusOrderChange: (statusOrder: StatusValue[]) => void;
 };
+
+function buildDocumentsByStatus(
+  statusOrder: StatusValue[],
+  documents: MarkdownDocumentListItem[],
+): DocumentsByStatus {
+  const grouped: Partial<DocumentsByStatus> = {};
+  for (const status of statusOrder) {
+    grouped[status] = [];
+  }
+  for (const document of documents) {
+    if (!grouped[document.status]) {
+      grouped[document.status] = [];
+    }
+    grouped[document.status]?.push(document);
+  }
+  return grouped as DocumentsByStatus;
+}
 
 function ErrorDetails({ error }: { error: MarkdownSyncErrorItem }) {
   if (error.errorDetails.kind === "frontmatter_validation") {
@@ -94,40 +114,188 @@ function ErrorDetails({ error }: { error: MarkdownSyncErrorItem }) {
   return <p>{error.errorDetails.message}</p>;
 }
 
-function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
+function SortableGridDocumentCard({
+  document,
+}: {
+  document: MarkdownDocumentListItem;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: document.filePath });
+  const style = {
+    transform: transform
+      ? `translate3d(${Math.trunc(transform.x)}px, ${Math.trunc(transform.y)}px, 0)`
+      : undefined,
+    transition,
+  };
+
+  return (
+    <article
+      className="group grid grid-rows-subgrid row-span-4 gap-1 border rounded-xs hover:bg-foreground/8"
+      ref={setNodeRef}
+      style={style}
+    >
+      <header className="flex items-center justify-between gap-1 p-1">
+        <Link
+          href={`/${encodeURIComponent(document.title)}`}
+          className="font-bold group-hover:underline"
+        >
+          {document.title}
+        </Link>
+        <Button
+          type="button"
+          className="h-6 w-6 border-none hover:cursor-move"
+          {...attributes}
+          {...listeners}
+          aria-label={`ドラッグして${document.title}の順序を並び替え`}
+        >
+          <GripVertical className="h-4 w-4" />
+        </Button>
+      </header>
+      <div className="flex justify-between items-center gap-1 border-t px-1 pt-1 text-sm text-foreground/80">
+        <span>{document.publishedAt.slice(0, 10)}</span>
+        <span>{document.conference}</span>
+      </div>
+      <p className="text-sm px-1">{document.abstract}</p>
+      <div className="px-2 pb-2">
+        <TagList tags={document.tags} />
+      </div>
+    </article>
+  );
+}
+
+function SortableTableDocumentRow({
+  document,
+}: {
+  document: MarkdownDocumentListItem;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: document.filePath });
+  const style = {
+    transform: transform
+      ? `translate3d(${Math.trunc(transform.x)}px, ${Math.trunc(transform.y)}px, 0)`
+      : undefined,
+    transition,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell className="w-12 p-1">
+        <Button
+          type="button"
+          className="h-6 w-6 border-none hover:cursor-move"
+          {...attributes}
+          {...listeners}
+          aria-label={`ドラッグして${document.title}の順序を並び替え`}
+        >
+          <GripVertical className="h-4 w-4" />
+        </Button>
+      </TableCell>
+      <TableCell>
+        <Link
+          href={`/${encodeURIComponent(document.title)}`}
+          className="font-bold hover:underline"
+        >
+          {document.title}
+        </Link>
+      </TableCell>
+      <TableCell className="text-sm p-2">{document.abstract}</TableCell>
+      <TableCell className="text-nowrap">{document.conference}</TableCell>
+      <TableCell className="p-1">
+        <TagList tags={document.tags} />
+      </TableCell>
+      <TableCell>{document.publishedAt.slice(0, 10)}</TableCell>
+    </TableRow>
+  );
+}
+
+function StatusGroup({
+  status,
+  documents,
+  viewMode,
+  canReorder,
+  onDocumentOrderChange,
+}: StatusGroupProps) {
+  const sensors = useSensors(useSensor(PointerSensor));
+  const sortableIds = documents.map((document) => document.filePath);
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const currentIndex = documents.findIndex(
+      (document) => document.filePath === active.id,
+    );
+    const nextIndex = documents.findIndex(
+      (document) => document.filePath === over.id,
+    );
+    if (currentIndex < 0 || nextIndex < 0) {
+      return;
+    }
+
+    onDocumentOrderChange(arrayMove(documents, currentIndex, nextIndex));
+  }
+
+  const shouldUseDnD = canReorder && documents.length > 1;
+
   return (
     <section className="px-2 grid gap-1">
       <header className="flex items-center gap-2">
         <h2 className="text-2xl font-bold">{status}</h2>
         <Badge>{documents.length}</Badge>
       </header>
+
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {documents.map((document) => (
-            <Link
-              href={`/${encodeURIComponent(document.title)}`}
-              key={document.filePath}
-              className="group grid grid-rows-subgrid row-span-4 gap-1 border rounded-xs hover:bg-foreground/8"
+        shouldUseDnD ? (
+          <DndContext
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+            sensors={sensors}
+          >
+            <SortableContext
+              items={sortableIds}
+              strategy={verticalListSortingStrategy}
             >
-              <h3 className="font-bold p-1 group-hover:underline">
-                {document.title}
-              </h3>
-              <div className="flex justify-between items-center gap-1 border-t px-1 pt-1 text-sm text-foreground/80">
-                <span>{document.publishedAt.slice(0, 10)}</span>
-                <span>{document.conference}</span>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+                {documents.map((document) => (
+                  <SortableGridDocumentCard
+                    document={document}
+                    key={document.filePath}
+                  />
+                ))}
               </div>
-              <p className="text-sm px-1">{document.abstract}</p>
-              <div className="px-2 pb-2">
-                <TagList tags={document.tags} />
-              </div>
-            </Link>
-          ))}
-          {documents.length === 0 ? <p>No documents</p> : null}
-        </div>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
+            {documents.map((document) => (
+              <Link
+                href={`/${encodeURIComponent(document.title)}`}
+                key={document.filePath}
+                className="group grid grid-rows-subgrid row-span-4 gap-1 border rounded-xs hover:bg-foreground/8"
+              >
+                <h3 className="font-bold p-1 group-hover:underline">
+                  {document.title}
+                </h3>
+                <div className="flex justify-between items-center gap-1 border-t px-1 pt-1 text-sm text-foreground/80">
+                  <span>{document.publishedAt.slice(0, 10)}</span>
+                  <span>{document.conference}</span>
+                </div>
+                <p className="text-sm px-1">{document.abstract}</p>
+                <div className="px-2 pb-2">
+                  <TagList tags={document.tags} />
+                </div>
+              </Link>
+            ))}
+            {documents.length === 0 ? <p>No documents</p> : null}
+          </div>
+        )
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">sort</TableHead>
               <TableHead className="min-w-[35vw]">title</TableHead>
               <TableHead className="min-w-[50vw]">abstract</TableHead>
               <TableHead>conference</TableHead>
@@ -136,31 +304,52 @@ function StatusGroup({ status, documents, viewMode }: StatusGroupProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {documents.map((document) => (
-              <TableRow key={document.filePath}>
-                <TableCell>
-                  <Link
-                    href={`/${encodeURIComponent(document.title)}`}
-                    className="font-bold hover:underline"
-                  >
-                    {document.title}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-sm p-2">
-                  {document.abstract}
-                </TableCell>
-                <TableCell className="text-nowrap">
-                  {document.conference}
-                </TableCell>
-                <TableCell className="p-1">
-                  <TagList tags={document.tags} />
-                </TableCell>
-                <TableCell>{document.publishedAt.slice(0, 10)}</TableCell>
-              </TableRow>
-            ))}
+            {shouldUseDnD ? (
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragEnd={onDragEnd}
+                sensors={sensors}
+              >
+                <SortableContext
+                  items={sortableIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {documents.map((document) => (
+                    <SortableTableDocumentRow
+                      document={document}
+                      key={document.filePath}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              documents.map((document) => (
+                <TableRow key={document.filePath}>
+                  <TableCell />
+                  <TableCell>
+                    <Link
+                      href={`/${encodeURIComponent(document.title)}`}
+                      className="font-bold hover:underline"
+                    >
+                      {document.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm p-2">
+                    {document.abstract}
+                  </TableCell>
+                  <TableCell className="text-nowrap">
+                    {document.conference}
+                  </TableCell>
+                  <TableCell className="p-1">
+                    <TagList tags={document.tags} />
+                  </TableCell>
+                  <TableCell>{document.publishedAt.slice(0, 10)}</TableCell>
+                </TableRow>
+              ))
+            )}
             {documents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5}>No documents</TableCell>
+                <TableCell colSpan={6}>No documents</TableCell>
               </TableRow>
             ) : null}
           </TableBody>
@@ -319,6 +508,16 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   const [statusOrder, setStatusOrder] = useState<StatusValue[]>(
     data.statusOrder,
   );
+  const [documentsByStatus, setDocumentsByStatus] = useState<DocumentsByStatus>(
+    () => buildDocumentsByStatus(data.statusOrder, data.documents),
+  );
+
+  useEffect(() => {
+    setStatusOrder(data.statusOrder);
+    setDocumentsByStatus(
+      buildDocumentsByStatus(data.statusOrder, data.documents),
+    );
+  }, [data.documents, data.statusOrder]);
 
   useEffect(() => {
     if (hasMountedRef.current) {
@@ -338,45 +537,40 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   }, [router]);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-
-  const filteredDocuments = useMemo(() => {
-    return data.documents.filter((document) => {
-      const documentTags = splitTags(document.tags);
-      const matchesTag =
-        selectedTags.length === 0 ||
-        selectedTags.some((selectedTag) => documentTags.includes(selectedTag));
-      if (!matchesTag) {
-        return false;
-      }
-
-      if (normalizedSearchQuery.length === 0) {
-        return true;
-      }
-
-      const title = document.title.toLowerCase();
-      const abstract = document.abstract.toLowerCase();
-      const body = document.body.toLowerCase();
-      return (
-        title.includes(normalizedSearchQuery) ||
-        abstract.includes(normalizedSearchQuery) ||
-        body.includes(normalizedSearchQuery)
-      );
-    });
-  }, [data.documents, normalizedSearchQuery, selectedTags]);
+  const canReorderDocuments =
+    normalizedSearchQuery.length === 0 && selectedTags.length === 0;
 
   const groupedDocuments = useMemo(() => {
-    const grouped = new Map<StatusValue, MarkdownDocumentListItem[]>();
+    const grouped: Partial<DocumentsByStatus> = {};
     for (const status of statusOrder) {
-      grouped.set(status, []);
+      const source = documentsByStatus[status] ?? [];
+      grouped[status] = source.filter((document) => {
+        const documentTags = splitTags(document.tags);
+        const matchesTag =
+          selectedTags.length === 0 ||
+          selectedTags.some((selectedTag) =>
+            documentTags.includes(selectedTag),
+          );
+        if (!matchesTag) {
+          return false;
+        }
+
+        if (normalizedSearchQuery.length === 0) {
+          return true;
+        }
+
+        const title = document.title.toLowerCase();
+        const abstract = document.abstract.toLowerCase();
+        const body = document.body.toLowerCase();
+        return (
+          title.includes(normalizedSearchQuery) ||
+          abstract.includes(normalizedSearchQuery) ||
+          body.includes(normalizedSearchQuery)
+        );
+      });
     }
-    for (const document of filteredDocuments) {
-      const group = grouped.get(document.status);
-      if (group) {
-        group.push(document);
-      }
-    }
-    return grouped;
-  }, [filteredDocuments, statusOrder]);
+    return grouped as DocumentsByStatus;
+  }, [documentsByStatus, normalizedSearchQuery, selectedTags, statusOrder]);
 
   async function persistStatusOrder(nextStatusOrder: StatusValue[]) {
     const response = await fetch("/api/status-settings", {
@@ -389,9 +583,37 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
     }
   }
 
+  async function persistDocumentOrder(
+    status: StatusValue,
+    orderedFilePaths: string[],
+  ) {
+    const response = await fetch("/api/document-order", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status, orderedFilePaths }),
+    });
+    if (!response.ok) {
+      router.refresh();
+    }
+  }
+
   function onStatusOrderChange(nextStatusOrder: StatusValue[]) {
     setStatusOrder(nextStatusOrder);
     void persistStatusOrder(nextStatusOrder);
+  }
+
+  function onDocumentOrderChange(
+    status: StatusValue,
+    nextDocuments: MarkdownDocumentListItem[],
+  ) {
+    setDocumentsByStatus((current) => ({
+      ...current,
+      [status]: nextDocuments,
+    }));
+    void persistDocumentOrder(
+      status,
+      nextDocuments.map((document) => document.filePath),
+    );
   }
 
   function toggleTag(tag: string) {
@@ -440,10 +662,14 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
           <div className="grid gap-2">
             {statusOrder.map((status) => (
               <StatusGroup
-                documents={groupedDocuments.get(status) ?? []}
+                documents={groupedDocuments[status] ?? []}
                 key={status}
                 status={status}
                 viewMode="grid"
+                canReorder={canReorderDocuments}
+                onDocumentOrderChange={(nextDocuments) =>
+                  onDocumentOrderChange(status, nextDocuments)
+                }
               />
             ))}
           </div>
@@ -463,10 +689,14 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
           <div className="grid gap-2">
             {statusOrder.map((status) => (
               <StatusGroup
-                documents={groupedDocuments.get(status) ?? []}
+                documents={groupedDocuments[status] ?? []}
                 key={status}
                 status={status}
                 viewMode="table"
+                canReorder={canReorderDocuments}
+                onDocumentOrderChange={(nextDocuments) =>
+                  onDocumentOrderChange(status, nextDocuments)
+                }
               />
             ))}
           </div>

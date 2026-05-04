@@ -38,6 +38,7 @@ export function ensureDatabase(): void {
       tags TEXT NOT NULL,
       conference TEXT NOT NULL,
       status TEXT NOT NULL ${statusCheck},
+      status_sort_order INTEGER NOT NULL DEFAULT 0,
       body TEXT NOT NULL,
       body_html TEXT NOT NULL,
       created_at INTEGER NOT NULL,
@@ -62,6 +63,39 @@ export function ensureDatabase(): void {
       sort_order INTEGER NOT NULL UNIQUE
     );
   `);
+
+  const documentColumns = sqlite
+    .prepare("PRAGMA table_info(documents)")
+    .all() as Array<{ name: string }>;
+  const hasStatusSortOrder = documentColumns.some(
+    (column) => column.name === "status_sort_order",
+  );
+  if (!hasStatusSortOrder) {
+    sqlite.exec(
+      "ALTER TABLE documents ADD COLUMN status_sort_order INTEGER NOT NULL DEFAULT 0;",
+    );
+    sqlite.exec(`
+      WITH ranked AS (
+        SELECT
+          id,
+          ROW_NUMBER() OVER (
+            PARTITION BY status
+            ORDER BY updated_at ASC, title ASC, id ASC
+          ) - 1 AS sort_order
+        FROM documents
+      )
+      UPDATE documents
+      SET status_sort_order = (
+        SELECT ranked.sort_order
+        FROM ranked
+        WHERE ranked.id = documents.id
+      )
+      WHERE id IN (SELECT id FROM ranked);
+    `);
+  }
+  sqlite.exec(
+    "CREATE INDEX IF NOT EXISTS documents_status_sort_order_idx ON documents (status, status_sort_order);",
+  );
 
   const insertStatusSetting = sqlite.prepare(
     "INSERT INTO status_settings (status, sort_order) VALUES (?, ?) ON CONFLICT(status) DO NOTHING",

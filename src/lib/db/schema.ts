@@ -15,6 +15,7 @@ export const documents = sqliteTable(
     tags: text("tags").notNull(),
     conference: text("conference").notNull(),
     status: text("status", { enum: statusValues }).notNull(),
+    statusSortOrder: integer("status_sort_order").notNull(),
     body: text("body").notNull(),
     bodyHtml: text("body_html").notNull(),
     createdAt: integer("created_at").notNull(),
@@ -22,6 +23,10 @@ export const documents = sqliteTable(
   },
   (table) => [
     index("documents_status_idx").on(table.status),
+    index("documents_status_sort_order_idx").on(
+      table.status,
+      table.statusSortOrder,
+    ),
     index("documents_title_idx").on(table.title),
   ],
 );
