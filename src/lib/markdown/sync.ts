@@ -4,6 +4,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { db, ensureDatabase } from "@/lib/db";
 import { documents, syncErrors } from "@/lib/db/schema";
 import { parseMarkdownFile } from "@/lib/markdown/parser";
+import { statusValues } from "@/lib/schema/frontmatter";
 
 const markdownExtensions = new Set([".md", ".markdown"]);
 
@@ -11,6 +12,11 @@ type DiscoveredMarkdownFile = {
   absolutePath: string;
   filePath: string;
   fileMtimeMs: number;
+};
+
+type ExistingDocumentState = {
+  status: (typeof documents.$inferSelect)["status"];
+  statusSortOrder: number;
 };
 
 export type MarkdownSyncSummary = {
@@ -79,6 +85,33 @@ function chunk<T>(values: T[], size: number): T[][] {
   return chunks;
 }
 
+function resolveStatusSortOrder(
+  existingDocument: ExistingDocumentState | undefined,
+  nextStatus: ExistingDocumentState["status"],
+): number {
+  if (existingDocument && existingDocument.status === nextStatus) {
+    return existingDocument.statusSortOrder;
+  }
+  if (existingDocument && existingDocument.status !== nextStatus) {
+    db.update(documents)
+      .set({
+        statusSortOrder: sql`${documents.statusSortOrder} + 1`,
+      })
+      .where(eq(documents.status, nextStatus))
+      .run();
+    return 0;
+  }
+
+  const maxOrderRow = db
+    .select({
+      maxOrder: sql<number | null>`max(${documents.statusSortOrder})`,
+    })
+    .from(documents)
+    .where(eq(documents.status, nextStatus))
+    .get();
+  return Number(maxOrderRow?.maxOrder ?? -1) + 1;
+}
+
 export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
   ensureDatabase();
 
@@ -103,13 +136,7 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
     .all();
 
   const existingByPath = new Map<string, number>();
-  const existingDocumentsByPath = new Map<
-    string,
-    {
-      status: (typeof existingDocuments)[number]["status"];
-      statusSortOrder: number;
-    }
-  >();
+  const existingDocumentsByPath = new Map<string, ExistingDocumentState>();
   for (const row of existingDocuments) {
     existingByPath.set(row.filePath, row.fileMtimeMs);
     existingDocumentsByPath.set(row.filePath, {
@@ -134,36 +161,17 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
     const now = Date.now();
     const existed = existingByPath.has(file.filePath);
     const parsed = await parseMarkdownFile(file);
+    const existingDocument = existingDocumentsByPath.get(parsed.filePath);
+    const nextStatus = parsed.ok
+      ? parsed.status
+      : (parsed.draft.status ?? existingDocument?.status ?? statusValues[0]);
+    const statusSortOrder = resolveStatusSortOrder(
+      existingDocument,
+      nextStatus,
+    );
 
-    if (parsed.ok) {
-      const existingDocument = existingDocumentsByPath.get(parsed.filePath);
-      let statusSortOrder = 0;
-      if (existingDocument && existingDocument.status === parsed.status) {
-        statusSortOrder = existingDocument.statusSortOrder;
-      } else if (
-        existingDocument &&
-        existingDocument.status !== parsed.status
-      ) {
-        db.update(documents)
-          .set({
-            statusSortOrder: sql`${documents.statusSortOrder} + 1`,
-          })
-          .where(eq(documents.status, parsed.status))
-          .run();
-        statusSortOrder = 0;
-      } else {
-        const maxOrderRow = db
-          .select({
-            maxOrder: sql<number | null>`max(${documents.statusSortOrder})`,
-          })
-          .from(documents)
-          .where(eq(documents.status, parsed.status))
-          .get();
-        statusSortOrder = Number(maxOrderRow?.maxOrder ?? -1) + 1;
-      }
-
-      db.insert(documents)
-        .values({
+    const upsertValues = parsed.ok
+      ? {
           filePath: parsed.filePath,
           fileMtimeMs: parsed.fileMtimeMs,
           title: parsed.title,
@@ -173,10 +181,100 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
           abstract: parsed.abstract,
           tags: JSON.stringify(parsed.tags),
           conference: parsed.conference,
-          status: parsed.status,
+          status: nextStatus,
           statusSortOrder,
           body: parsed.body,
           bodyHtml: parsed.bodyHtml,
+          createdAt: now,
+          updatedAt: now,
+        }
+      : {
+          filePath: parsed.filePath,
+          fileMtimeMs: parsed.fileMtimeMs,
+          title: parsed.draft.title,
+          url: parsed.draft.url,
+          pdfUrl: parsed.draft.pdfUrl,
+          publishedAt: parsed.draft.publishedAt,
+          abstract: parsed.draft.abstract,
+          tags: JSON.stringify(parsed.draft.tags),
+          conference: parsed.draft.conference,
+          status: nextStatus,
+          statusSortOrder,
+          body: parsed.draft.body,
+          bodyHtml: parsed.draft.bodyHtml,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+    db.insert(documents)
+      .values(upsertValues)
+      .onConflictDoUpdate({
+        target: documents.filePath,
+        set: {
+          fileMtimeMs: upsertValues.fileMtimeMs,
+          title: upsertValues.title,
+          url: upsertValues.url,
+          pdfUrl: upsertValues.pdfUrl,
+          publishedAt: upsertValues.publishedAt,
+          abstract: upsertValues.abstract,
+          tags: upsertValues.tags,
+          conference: upsertValues.conference,
+          status: upsertValues.status,
+          statusSortOrder: upsertValues.statusSortOrder,
+          body: upsertValues.body,
+          bodyHtml: upsertValues.bodyHtml,
+          updatedAt: now,
+        },
+      })
+      .run();
+
+    if (parsed.ok) {
+      db.delete(syncErrors)
+        .where(eq(syncErrors.filePath, parsed.filePath))
+        .run();
+    } else {
+      const existingDocument = existingDocumentsByPath.get(parsed.filePath);
+      const nextStatus =
+        parsed.draft.status ?? existingDocument?.status ?? statusValues[0];
+      let statusSortOrder = 0;
+      if (existingDocument && existingDocument.status === nextStatus) {
+        statusSortOrder = existingDocument.statusSortOrder;
+      } else if (existingDocument && existingDocument.status !== nextStatus) {
+        db.update(documents)
+          .set({
+            statusSortOrder: sql`${documents.statusSortOrder} + 1`,
+          })
+          .where(eq(documents.status, nextStatus))
+          .run();
+        statusSortOrder = 0;
+      } else {
+        statusSortOrder =
+          Number(
+            db
+              .select({
+                maxOrder: sql<number | null>`max(${documents.statusSortOrder})`,
+              })
+              .from(documents)
+              .where(eq(documents.status, nextStatus))
+              .get()?.maxOrder ?? -1,
+          ) + 1;
+      }
+
+      db.insert(documents)
+        .values({
+          filePath: parsed.filePath,
+          fileMtimeMs: parsed.fileMtimeMs,
+          title: parsed.draft.title,
+          url: parsed.draft.url,
+          pdfUrl: parsed.draft.pdfUrl,
+          publishedAt: parsed.draft.publishedAt,
+          abstract: parsed.draft.abstract,
+          tags: JSON.stringify(parsed.draft.tags),
+          conference: parsed.draft.conference,
+          status: nextStatus,
+          statusSortOrder,
+          body: parsed.draft.body,
+          bodyHtml: parsed.draft.bodyHtml,
           createdAt: now,
           updatedAt: now,
         })
@@ -184,26 +282,22 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
           target: documents.filePath,
           set: {
             fileMtimeMs: parsed.fileMtimeMs,
-            title: parsed.title,
-            url: parsed.url,
-            pdfUrl: parsed.pdfUrl,
-            publishedAt: parsed.publishedAt,
-            abstract: parsed.abstract,
-            tags: JSON.stringify(parsed.tags),
-            conference: parsed.conference,
-            status: parsed.status,
+            title: parsed.draft.title,
+            url: parsed.draft.url,
+            pdfUrl: parsed.draft.pdfUrl,
+            publishedAt: parsed.draft.publishedAt,
+            abstract: parsed.draft.abstract,
+            tags: JSON.stringify(parsed.draft.tags),
+            conference: parsed.draft.conference,
+            status: nextStatus,
             statusSortOrder,
-            body: parsed.body,
-            bodyHtml: parsed.bodyHtml,
+            body: parsed.draft.body,
+            bodyHtml: parsed.draft.bodyHtml,
             updatedAt: now,
           },
         })
         .run();
 
-      db.delete(syncErrors)
-        .where(eq(syncErrors.filePath, parsed.filePath))
-        .run();
-    } else {
       db.insert(syncErrors)
         .values({
           filePath: parsed.filePath,
@@ -224,8 +318,6 @@ export async function syncMarkdownDirectory(): Promise<MarkdownSyncSummary> {
           },
         })
         .run();
-
-      db.delete(documents).where(eq(documents.filePath, parsed.filePath)).run();
     }
 
     if (existed) {
