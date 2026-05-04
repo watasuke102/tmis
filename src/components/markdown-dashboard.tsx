@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { TagList } from "@/components/tag-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -211,6 +211,7 @@ function StatusGroup({
   canReorder,
   onDocumentOrderChange,
 }: StatusGroupProps) {
+  const dnd_context_id = useId();
   const sensors = useSensors(useSensor(PointerSensor));
   const sortableIds = documents.map((document) => document.filePath);
 
@@ -245,6 +246,7 @@ function StatusGroup({
       {viewMode === "grid" ? (
         shouldUseDnD ? (
           <DndContext
+            id={dnd_context_id}
             collisionDetection={closestCenter}
             onDragEnd={onDragEnd}
             sensors={sensors}
