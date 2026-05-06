@@ -734,7 +734,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
             selectedTags={selectedTags}
             statusOrder={statusOrder}
           />
-          <div className="grid gap-2">
+          <div className="grid gap-2 mb-auto">
             {statusOrder.map((status) => (
               <StatusGroup
                 documents={groupedDocuments[status] ?? []}
@@ -752,7 +752,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
 
         <TabsContent
           value="table"
-          className="grid grid-rows-[auto_1fr] min-w-0 max-w-full"
+          className="grid grid-rows-[auto_1fr] min-w-0 max-w-full mb-auto"
         >
           <FilterArea
             data={data}
