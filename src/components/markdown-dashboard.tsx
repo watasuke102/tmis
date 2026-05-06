@@ -266,11 +266,16 @@ function StatusGroup({
   const shouldUseDnD = canReorder && documents.length > 1;
 
   return (
-    <section className="px-2 grid gap-1 min-w-0">
-      <header className="flex items-center gap-2 mb-3 pb-px border-b-4 border-primary">
-        <h2 className="text-2xl font-bold">{status}</h2>
-        <Badge>{documents.length}</Badge>
-      </header>
+    <details
+      open
+      className="px-2 grid gap-1 w-full min-w-0 max-w-full overflow-x-auto"
+    >
+      <summary className="list-item mb-3 pb-px border-b-4 border-primary hover:cursor-pointer">
+        <div className="inline-flex flex-grow items-center gap-2">
+          <h2 className="text-2xl font-bold">{status}</h2>
+          <Badge>{documents.length}</Badge>
+        </div>
+      </summary>
 
       {viewMode === "grid" ? (
         shouldUseDnD ? (
@@ -319,7 +324,7 @@ function StatusGroup({
           </div>
         )
       ) : (
-        <div className="w-full overflow-x-auto">
+        <div className="w-full">
           <div className="grid pb-8 min-w-max">
             <div className={`grid ${TABLE_GRID_COLUMNS} gap-0 font-bold`}>
               <div className="p-1 outline bg-foreground text-background"></div>
@@ -425,7 +430,7 @@ function StatusGroup({
           </div>
         </div>
       )}
-    </section>
+    </details>
   );
 }
 
@@ -695,9 +700,9 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   }
 
   return (
-    <section className="grid gap-2 min-w-0">
+    <section className="grid gap-2 min-w-0 max-w-full">
       <Tabs
-        className="grid grid-rows-[auto_1fr]"
+        className="grid grid-rows-[auto_1fr] min-w-0 max-w-full"
         onValueChange={(value) => setActiveTab(value as TabValue)}
         value={activeTab}
       >
@@ -747,7 +752,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
 
         <TabsContent
           value="table"
-          className="grid grid-rows-[auto_1fr] min-w-0"
+          className="grid grid-rows-[auto_1fr] min-w-0 max-w-full"
         >
           <FilterArea
             data={data}
@@ -759,7 +764,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
             selectedTags={selectedTags}
             statusOrder={statusOrder}
           />
-          <div className="grid gap-2 min-w-0">
+          <div className="grid gap-2 min-w-0 max-w-full">
             {statusOrder.map((status) => (
               <StatusGroup
                 documents={groupedDocuments[status] ?? []}
