@@ -1,9 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Link from "next/link";
-import { useEffect } from "react";
 import { TagList } from "@/components/tag-list";
 import type { MarkdownDocumentListItem } from "@/lib/markdown/repository";
 
@@ -26,27 +25,27 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
       <div className="grid grid-cols-[max-content_1fr] gap-x-4 border-b pb-3 border-b-2">
         <span className="font-bold">url</span>
         <span>
-          <Link
+          <a
             href={document.url}
             rel="noreferrer"
             target="_blank"
             className="text-primary underline"
           >
             {document.url}
-          </Link>
+          </a>
         </span>
         {document.pdfUrl ? (
           <>
             <span className="font-bold">pdf_url</span>
             <span>
-              <Link
+              <a
                 href={document.pdfUrl}
                 rel="noreferrer"
                 target="_blank"
                 className="text-primary underline"
               >
                 {document.pdfUrl}
-              </Link>
+              </a>
             </span>
           </>
         ) : null}

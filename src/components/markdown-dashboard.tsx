@@ -70,6 +70,11 @@ type FilterAreaProps = {
   onStatusOrderChange: (statusOrder: StatusValue[]) => void;
 };
 
+// 'published_at'.length = 12 + .5 padding
+// 'https://dl.acm.org'.length = 18
+const TABLE_GRID_COLUMNS =
+  "grid-cols-[36px_minmax(12rem,35vw)_minmax(16rem,50vw)_minmax(10rem,1fr)_minmax(10rem,1fr)_12.5ch_40ch_40ch]";
+
 function buildDocumentsByStatus(
   statusOrder: StatusValue[],
   documents: MarkdownDocumentListItem[],
@@ -173,7 +178,7 @@ function SortableTableDocumentRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="grid grid-cols-[36px_minmax(0,4fr)_minmax(0,6fr)_minmax(0,2fr)_minmax(0,3fr)_9rem] gap-0 items-start"
+      className={`grid ${TABLE_GRID_COLUMNS} gap-0 items-start`}
     >
       <div
         className="h-full outline p-1 pt-2 flex justify-center hover:cursor-move"
@@ -199,6 +204,30 @@ function SortableTableDocumentRow({
       </div>
       <div className="h-full outline p-1">
         {document.publishedAt.slice(0, 10)}
+      </div>
+      <div className="h-full outline p-1 overflow-hidden">
+        <a
+          href={document.url}
+          rel="noreferrer"
+          target="_blank"
+          className="block overflow-hidden text-ellipsis whitespace-nowrap text-primary underline"
+        >
+          {document.url}
+        </a>
+      </div>
+      <div className="h-full outline p-1 overflow-hidden">
+        {document.pdfUrl ? (
+          <a
+            href={document.pdfUrl}
+            rel="noreferrer"
+            target="_blank"
+            className="block overflow-hidden text-ellipsis whitespace-nowrap text-primary underline"
+          >
+            {document.pdfUrl}
+          </a>
+        ) : (
+          "-"
+        )}
       </div>
     </div>
   );
@@ -237,7 +266,7 @@ function StatusGroup({
   const shouldUseDnD = canReorder && documents.length > 1;
 
   return (
-    <section className="px-2 grid gap-1">
+    <section className="px-2 grid gap-1 min-w-0">
       <header className="flex items-center gap-2 mb-3 pb-px border-b-4 border-primary">
         <h2 className="text-2xl font-bold">{status}</h2>
         <Badge>{documents.length}</Badge>
@@ -290,77 +319,109 @@ function StatusGroup({
           </div>
         )
       ) : (
-        <div className="grid pb-8">
-          <div className="grid grid-cols-[36px_minmax(0,4fr)_minmax(0,6fr)_minmax(0,2fr)_minmax(0,3fr)_9rem] gap-0 font-bold">
-            <div className="p-1 outline bg-foreground text-background"></div>
-            <div className="p-1 outline bg-foreground text-background">
-              title
+        <div className="w-full overflow-x-auto">
+          <div className="grid pb-8 min-w-max">
+            <div className={`grid ${TABLE_GRID_COLUMNS} gap-0 font-bold`}>
+              <div className="p-1 outline bg-foreground text-background"></div>
+              <div className="p-1 outline bg-foreground text-background">
+                title
+              </div>
+              <div className="p-1 outline bg-foreground text-background">
+                abstract
+              </div>
+              <div className="p-1 outline bg-foreground text-background">
+                conference
+              </div>
+              <div className="p-1 outline bg-foreground text-background">
+                tags
+              </div>
+              <div className="p-1 outline bg-foreground text-background">
+                published_at
+              </div>
+              <div className="p-1 outline bg-foreground text-background">
+                url
+              </div>
+              <div className="p-1 outline bg-foreground text-background">
+                pdf_url
+              </div>
             </div>
-            <div className="p-1 outline bg-foreground text-background">
-              abstract
-            </div>
-            <div className="p-1 outline bg-foreground text-background">
-              conference
-            </div>
-            <div className="p-1 outline bg-foreground text-background">
-              tags
-            </div>
-            <div className="p-1 outline bg-foreground text-background">
-              published_at
-            </div>
-          </div>
-          <div className="grid">
-            {shouldUseDnD ? (
-              <DndContext
-                collisionDetection={closestCenter}
-                onDragEnd={onDragEnd}
-                sensors={sensors}
-              >
-                <SortableContext
-                  items={sortableIds}
-                  strategy={verticalListSortingStrategy}
+            <div className="grid">
+              {shouldUseDnD ? (
+                <DndContext
+                  collisionDetection={closestCenter}
+                  onDragEnd={onDragEnd}
+                  sensors={sensors}
                 >
-                  {documents.map((document) => (
-                    <SortableTableDocumentRow
-                      document={document}
-                      key={document.filePath}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            ) : (
-              documents.map((document) => (
-                <div
-                  key={document.filePath}
-                  className="grid grid-cols-[36px_minmax(0,4fr)_minmax(0,6fr)_minmax(0,2fr)_minmax(0,3fr)_9rem] gap-0 items-start"
-                >
-                  <div className="h-fill outline p-1" />
-                  <div className="h-fill outline p-1">
-                    <Link
-                      href={`/${encodeURIComponent(document.title)}`}
-                      className="font-bold hover:underline"
-                    >
-                      {document.title}
-                    </Link>
+                  <SortableContext
+                    items={sortableIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {documents.map((document) => (
+                      <SortableTableDocumentRow
+                        document={document}
+                        key={document.filePath}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                documents.map((document) => (
+                  <div
+                    key={document.filePath}
+                    className={`grid ${TABLE_GRID_COLUMNS} gap-0 items-start`}
+                  >
+                    <div className="h-fill outline p-1" />
+                    <div className="h-fill outline p-1">
+                      <Link
+                        href={`/${encodeURIComponent(document.title)}`}
+                        className="font-bold hover:underline"
+                      >
+                        {document.title}
+                      </Link>
+                    </div>
+                    <div className="h-fill outline text-sm p-1">
+                      {document.abstract}
+                    </div>
+                    <div className="h-fill outline text-nowrap p-1">
+                      {document.conference}
+                    </div>
+                    <div className="h-fill outline p-1">
+                      <TagList tags={document.tags} />
+                    </div>
+                    <div className="h-fill outline p-1">
+                      {document.publishedAt.slice(0, 10)}
+                    </div>
+                    <div className="h-fill outline p-1 overflow-hidden">
+                      <a
+                        href={document.url}
+                        rel="noreferrer"
+                        target="_blank"
+                        className="block overflow-hidden text-ellipsis whitespace-nowrap"
+                      >
+                        {document.url}
+                      </a>
+                    </div>
+                    <div className="h-fill outline p-1 overflow-hidden">
+                      {document.pdfUrl ? (
+                        <a
+                          href={document.pdfUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                          className="block overflow-hidden text-ellipsis whitespace-nowrap"
+                        >
+                          {document.pdfUrl}
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
                   </div>
-                  <div className="h-fill outline text-sm p-1">
-                    {document.abstract}
-                  </div>
-                  <div className="h-fill outline text-nowrap p-1">
-                    {document.conference}
-                  </div>
-                  <div className="h-fill outline p-1">
-                    <TagList tags={document.tags} />
-                  </div>
-                  <div className="h-fill outline p-1">
-                    {document.publishedAt.slice(0, 10)}
-                  </div>
-                </div>
-              ))
-            )}
-            {documents.length === 0 ? (
-              <div className="p-1">No documents</div>
-            ) : null}
+                ))
+              )}
+              {documents.length === 0 ? (
+                <div className="p-1">No documents</div>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
@@ -634,7 +695,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
   }
 
   return (
-    <section className="grid gap-2">
+    <section className="grid gap-2 min-w-0">
       <Tabs
         className="grid grid-rows-[auto_1fr]"
         onValueChange={(value) => setActiveTab(value as TabValue)}
@@ -684,7 +745,10 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
           </div>
         </TabsContent>
 
-        <TabsContent value="table" className="grid-rows-[auto_1fr]">
+        <TabsContent
+          value="table"
+          className="grid grid-rows-[auto_1fr] min-w-0"
+        >
           <FilterArea
             data={data}
             onClearSelectedTags={() => setSelectedTags([])}
@@ -695,7 +759,7 @@ export function MarkdownDashboard({ data }: MarkdownDashboardProps) {
             selectedTags={selectedTags}
             statusOrder={statusOrder}
           />
-          <div className="grid gap-2">
+          <div className="grid gap-2 min-w-0">
             {statusOrder.map((status) => (
               <StatusGroup
                 documents={groupedDocuments[status] ?? []}
